@@ -13,6 +13,7 @@ int shmid;
 char * texte;
 char nom;
 int pid;
+char rejoindreServeur; /* réponse (o/n) à une question */
 
 int main() {
     pid = getpid();
@@ -26,10 +27,17 @@ int main() {
         exit(1);
     }
 
-    pid_t pid_client = shmid_ds.shm_cpid;
+    pid_t pid_serveur = shmid_ds.shm_cpid;
 
     texte = (char*) shmat ( shmid , NULL, 0 );
 
+    printf("--> Voulez-vous rejoindre la mémoire partagé (o/n) ? : ");
+    fflush(stdout);
+    scanf("%c", &rejoindreServeur);
+    std::cin.ignore();
+    if(rejoindreServeur == 'n') {
+        exit(0);
+    }
     std::cout << "--> Déclinez votre identité : ";
     std::cin >> nom;
 
@@ -41,9 +49,6 @@ int main() {
         std::getline(std::cin, message);
 
         std::strncpy(texte, message.c_str(), 155);
-        kill(pid_client, SIGUSR1);
+        kill(pid_serveur, SIGUSR1);
     }
 }
-
-
-
