@@ -6,13 +6,26 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <iostream>
+#include <cstring>
 
 char * texte;
 int shmid ;
 
 void sigusr1_handler(int sig) {
-    printf("%s\n", texte);
+    printf("SIGUSR1 handler\n");
+    // Lire le PID (premiers 50 caractères) et le message (500 caractères suivants)
+    char pid[50];
+    char message[1000];
+
+    std::strncpy(pid, texte, 50); // Les 50 premiers caractères pour le PID
+    std::strncpy(message, texte + 50, 1000); // Les 1000 caractères suivants pour le message
+
+    // Afficher le PID et le message
+    std::cout << "PID du client : " << pid << std::endl;
+    std::cout << "Message : " << message << std::endl;
 }
+
 void sigint_handler(int sig) {
     int ret = shmdt(texte);
     if (ret == -1) { perror("SHMDT"); exit(3); }
