@@ -34,6 +34,7 @@ std::string trim(const std::string &str) {
 }
 
 int main() {
+    pid = getpid();
     shmid = shmget((key_t)50, 0, 0);
     if (shmid == -1) { perror ( "SHMGET" ); exit(1); }
 
@@ -49,9 +50,6 @@ int main() {
     printf("pid_serveur = %d\n", pid_serveur);
 
     texte = (char*) shmat ( shmid , NULL, 0 );
-
-    pid = getpid();
-    snprintf(texte, 50, "%d", pid);
 
     printf("--> Voulez-vous rejoindre la mémoire partagé (o/n) ? : ");
     fflush(stdout);
@@ -85,6 +83,7 @@ int main() {
     // Ignore the newline character left by std::cin >> nom;
     //std::cin.ignore();
     while(1) {
+        snprintf(texte, 50, "%d", pid);
         std::cout << "--> Tapez votre message : ";
         std::string message;
         std::getline(std::cin, message);
