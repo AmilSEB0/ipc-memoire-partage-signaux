@@ -18,6 +18,7 @@ struct Client {
 char * texte;
 int shmid ;
 std::map<int, Client> mapClient;
+char autorisation; /* réponse (o/n) à une question */
 
 void sigusr1_handler(int sig) {
     printf("SIGUSR1 handler\n");
@@ -33,10 +34,17 @@ void sigusr1_handler(int sig) {
 
     if (it != mapClient.end()) {
         if (strcmp(message, "quitter") == 0) {
-            kill(pid_client, SIGUSR2);
-            mapClient.erase(pid_client);
-             std::cout << "La map contient " << mapClient.size() << " éléments." << std::endl;
-        }else {
+            printf("--> Autorisez-vous %s à quitter la mémoire partagée (o/n) ? : ", it->second.nomPrenom.c_str());
+            fflush(stdout);
+            scanf("%c", &autorisation);
+            if (autorisation == 'o') {
+                kill(pid_client, SIGUSR1);
+                mapClient.erase(pid_client);
+                std::cout << "La map contient " << mapClient.size() << " éléments." << std::endl;
+            } else {
+                kill(pid_client, SIGUSR2);
+            }
+        } else {
             it->second.dernierMessage = message;
             std::cout << it->second.nomPrenom << " a dit: " << it->second.dernierMessage << std::endl;
         }
@@ -53,9 +61,7 @@ void sigusr1_handler(int sig) {
 void sigint_handler(int sig) {
     for (auto& client : mapClient) {
         std::cout << "PID du client : " << client.first << std::endl;
-        if(client.first != 0){
-            kill(pid_client, SIGUSR2);
-        }
+        kill(client.first, SIGUSR1);
     }
 
     mapClient.clear();

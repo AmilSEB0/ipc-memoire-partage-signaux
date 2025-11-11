@@ -33,13 +33,30 @@ std::string trim(const std::string &str) {
     return str.substr(start, end - start);
 }
 
-void sigusr2_handler(int sig) {
-
+void sigusr1_handler(int sig) {
     int ret = shmdt(texte);
     if (ret == -1) { perror("SHMDT"); exit(3); }
 
     printf("Je sors de la mémoire partage\n");
     exit(0);
+}
+
+void sigusr2_handler(int sig) {
+    printf("SIGUSR2");
+    std::cin.ignore();
+    printf("votre demande à été refuser \n");
+}
+
+void sigint_handler(int sig) {
+    printf("SIGINT");
+}
+
+void sigquit_handler(int sig) {
+    printf("SIGQUIT");
+}
+
+void sigtstp_handler(int sig) {
+    printf("SIGTSTP");
 }
 
 int main() {
@@ -60,7 +77,11 @@ int main() {
 
     texte = (char*) shmat ( shmid , NULL, 0 );
 
+    signal(SIGUSR1, sigusr1_handler);
     signal(SIGUSR2, sigusr2_handler);
+    signal(SIGINT, sigint_handler);
+    signal(SIGQUIT, sigquit_handler);
+    signal(SIGTSTP, sigtstp_handler);
 
     printf("--> Voulez-vous rejoindre la mémoire partagé (o/n) ? : ");
     fflush(stdout);
@@ -103,5 +124,9 @@ int main() {
 
         std::strncpy(texte + 50, message.c_str(), 1000);
         kill(pid_serveur, SIGUSR1);
+
+        if (message == "quitter") {
+            pause();
+        }
     }
 }
