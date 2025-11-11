@@ -21,20 +21,25 @@ std::map<int, Client> mapClient;
 
 void sigusr1_handler(int sig) {
     printf("SIGUSR1 handler\n");
-    // Lire le PID (premiers 50 caractères) et le message (500 caractères suivants)
     char pid[50];
     char message[1000];
 
-    std::strncpy(pid, texte, 50); // Les 50 premiers caractères pour le PID
-    std::strncpy(message, texte + 50, 1000); // Les 1000 caractères suivants pour le message
+    std::strncpy(pid, texte, 50);
+    std::strncpy(message, texte + 50, 1000);
 
     int pid_client = std::stoi(pid);
 
     auto it = mapClient.find(pid_client);
 
     if (it != mapClient.end()) {
-        it->second.dernierMessage = message;
-        std::cout << it->second.nomPrenom << " a dit: " << it->second.dernierMessage << std::endl;
+        if (strcmp(message, "quitter") == 0) {
+            kill(pid_client, SIGUSR2);
+            mapClient.erase(pid_client);
+             std::cout << "La map contient " << mapClient.size() << " éléments." << std::endl;
+        }else {
+            it->second.dernierMessage = message;
+            std::cout << it->second.nomPrenom << " a dit: " << it->second.dernierMessage << std::endl;
+        }
     } else {
         std::string NomPrenom = message;
         mapClient[pid_client] = Client{NomPrenom, ""};
@@ -46,8 +51,25 @@ void sigusr1_handler(int sig) {
 }
 
 void sigint_handler(int sig) {
-    // Détachement de la mémoire partagée
-    int ret = shmdt(texte);
+    for (auto& client : mapClient) {
+        std::cout << "PID du client : " << client.first << std::endl;
+        if(client.first != 0){
+            kill(pid_client, SIGUSR2);
+        }
+    }
+
+    mapClient.clear();
+
+    struct shmid_ds shmid_ds;
+    int ret = shmctl(shmid, IPC_STAT, &shmid_ds);
+    if (ret == -1) {
+        perror("Erreur lors de shmctl");
+        exit(1);
+    }
+
+    std::cout << "Nombre de processus attachés : " << shmid_ds.shm_nattch << std::endl;
+
+    ret = shmdt(texte);
     if (ret == -1) {
         perror("Erreur lors du détachement de la mémoire partagée (shmdt)");
         exit(3);

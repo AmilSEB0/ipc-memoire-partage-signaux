@@ -33,6 +33,15 @@ std::string trim(const std::string &str) {
     return str.substr(start, end - start);
 }
 
+void sigusr2_handler(int sig) {
+
+    int ret = shmdt(texte);
+    if (ret == -1) { perror("SHMDT"); exit(3); }
+
+    printf("Je sors de la mémoire partage\n");
+    exit(0);
+}
+
 int main() {
     pid = getpid();
     shmid = shmget((key_t)50, 0, 0);
@@ -50,6 +59,8 @@ int main() {
     printf("pid_serveur = %d\n", pid_serveur);
 
     texte = (char*) shmat ( shmid , NULL, 0 );
+
+    signal(SIGUSR2, sigusr2_handler);
 
     printf("--> Voulez-vous rejoindre la mémoire partagé (o/n) ? : ");
     fflush(stdout);
