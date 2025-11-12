@@ -36,12 +36,15 @@ void sigusr1_handler(int sig) {
         if (strcmp(message, "quitter") == 0) {
             printf("--> Autorisez-vous %s à quitter la mémoire partagée (o/n) ? : ", it->second.nomPrenom.c_str());
             fflush(stdout);
-            scanf("%c", &autorisation);
+            scanf(" %c", &autorisation);
+            snprintf(texte, 50, "%d", getpid());
             if (autorisation == 'o') {
+                std::strncpy(texte + 50, "Votre demande a été acceptée\n", 1000);
                 kill(pid_client, SIGUSR1);
                 mapClient.erase(pid_client);
                 std::cout << "La map contient " << mapClient.size() << " éléments." << std::endl;
             } else {
+                std::strncpy(texte + 50, "Votre demande a été refusée\n", 1000);
                 kill(pid_client, SIGUSR2);
             }
         } else {
@@ -92,7 +95,7 @@ void sigint_handler(int sig) {
 }
 
 int main() {
-    shmid = shmget((key_t) 50, 256, IPC_CREAT | S_IWUSR | S_IRUSR);
+    shmid = shmget((key_t) 50, 1050, IPC_CREAT | S_IWUSR | S_IRUSR);
     if ( shmid == -1) { perror ( "SHMGET" ); exit(1); }
 
     texte = (char*) shmat ( shmid , NULL, 0 );

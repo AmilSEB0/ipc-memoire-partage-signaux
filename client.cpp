@@ -34,6 +34,11 @@ std::string trim(const std::string &str) {
 }
 
 void sigusr1_handler(int sig) {
+    char message[1000];
+
+    std::strncpy(message, texte + 50, 1000);
+    printf("%s", message);
+
     int ret = shmdt(texte);
     if (ret == -1) { perror("SHMDT"); exit(3); }
 
@@ -42,9 +47,11 @@ void sigusr1_handler(int sig) {
 }
 
 void sigusr2_handler(int sig) {
-    printf("SIGUSR2");
-    std::cin.ignore();
-    printf("votre demande à été refuser \n");
+    char message[1000];
+
+    std::strncpy(message, texte + 50, 1000);
+    printf("%s", message);
+    //std::cout << "Votre demande de quitter a été refusée." << std::endl;
 }
 
 void sigint_handler(int sig) {
@@ -88,7 +95,7 @@ int main() {
     scanf("%c", &rejoindreServeur);
     std::cin.ignore();
     if(rejoindreServeur == 'n') {
-        exit(0);
+        printf("Refus non accepté. Le système a décidé pour toi : bienvenue dans la mémoire partagée !\n");
     }
 
     std::cout << "--> Déclinez votre identité :\n";
@@ -105,8 +112,8 @@ int main() {
     nom = trim(nom);
     prenom = trim(prenom);
 
-    // Combiner nom et prénom
-    std::string nomPrenom = nom + " " + prenom;
+    // Combiner prénom et nom
+    std::string nomPrenom = prenom + " " + nom;
 
     std::strncpy(texte + 50, nomPrenom.c_str(), 1000);
 
