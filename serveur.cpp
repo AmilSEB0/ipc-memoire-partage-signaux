@@ -44,7 +44,7 @@ void sigusr1_handler(int sig) {
                 mapClient.erase(pid_client);
                 std::cout << "La map contient " << mapClient.size() << " éléments." << std::endl;
             } else {
-                std::strncpy(texte + 50, "Votre demande a été refusée\n", 1000);
+                std::strncpy(texte + 50, "Votre demande a été refusée. Tapez sur la touche 'Entrée' pour pouvoir continuer à écrire.\n", 1000);
                 kill(pid_client, SIGUSR2);
             }
         } else {

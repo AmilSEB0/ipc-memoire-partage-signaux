@@ -8,7 +8,10 @@
 #include <signal.h>
 #include <iostream>
 #include <cstring>
+#include <termios.h>
+#include <limits>
 
+struct termios orig_termios;
 int shmid;
 char * texte;
 int pid;
@@ -33,6 +36,14 @@ std::string trim(const std::string &str) {
     return str.substr(start, end - start);
 }
 
+void disable_input(void) {
+    struct termios new_termios;
+    tcgetattr(STDIN_FILENO, &orig_termios);  // Sauvegarder l'état actuel du terminal
+    new_termios = orig_termios;
+    new_termios.c_lflag &= ~(ICANON | ECHO);  // Désactive l'entrée canonique et l'écho
+    tcsetattr(STDIN_FILENO, TCSANOW, &new_termios);
+}
+
 void sigusr1_handler(int sig) {
     char message[1000];
 
@@ -41,6 +52,11 @@ void sigusr1_handler(int sig) {
 
     int ret = shmdt(texte);
     if (ret == -1) { perror("SHMDT"); exit(3); }
+    // Réactiver l'entrée du terminal en mode non-canonique
+    tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
+
+    // Vider le tampon de saisie pour éviter l'envoi des caractères tapés pendant la pause
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 
     printf("Je sors de la mémoire partage\n");
     exit(0);
@@ -51,7 +67,11 @@ void sigusr2_handler(int sig) {
 
     std::strncpy(message, texte + 50, 1000);
     printf("%s", message);
-    //std::cout << "Votre demande de quitter a été refusée." << std::endl;
+    // Réactiver l'entrée du terminal en mode non-canonique
+    tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
+
+    // Vider le tampon de saisie pour éviter l'envoi des caractères tapés pendant la pause
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }
 
 void sigint_handler(int sig) {
@@ -64,6 +84,10 @@ void sigquit_handler(int sig) {
 
 void sigtstp_handler(int sig) {
     printf("SIGTSTP");
+}
+
+void sigterm_handler(int sig) {
+    printf("SIGTERM");
 }
 
 int main() {
@@ -89,6 +113,7 @@ int main() {
     signal(SIGINT, sigint_handler);
     signal(SIGQUIT, sigquit_handler);
     signal(SIGTSTP, sigtstp_handler);
+    signal(SIGTERM, sigterm_handler);
 
     printf("--> Voulez-vous rejoindre la mémoire partagé (o/n) ? : ");
     fflush(stdout);
@@ -133,6 +158,7 @@ int main() {
         kill(pid_serveur, SIGUSR1);
 
         if (message == "quitter") {
+            disable_input();
             pause();
         }
     }
