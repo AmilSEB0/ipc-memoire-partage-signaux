@@ -95,8 +95,18 @@ void sigint_handler(int sig) {
 }
 
 int main() {
-    shmid = shmget((key_t) 50, 1050, IPC_CREAT | S_IWUSR | S_IRUSR);
-    if ( shmid == -1) { perror ( "SHMGET" ); exit(1); }
+    // Tentative de création de la mémoire partagée
+    shmid = shmget((key_t)50, 1050, IPC_CREAT | IPC_EXCL | S_IWUSR | S_IRUSR);
+
+    // Vérification des erreurs
+    if (shmid == -1) {
+        if (errno == EEXIST) {
+            std::cerr << "Erreur : La mémoire partagée existe déjà." << std::endl;
+        } else {
+            std::cerr << "Erreur : échec de la création de la mémoire partagée. Code d'erreur : " << errno << std::endl;
+        }
+        return 1;
+    }
 
     texte = (char*) shmat ( shmid , NULL, 0 );
 
