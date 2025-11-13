@@ -94,6 +94,25 @@ void destruction_memoire_partage_handler(int sig) {
     exit(0);
 }
 
+void sigusr2_handler(int sig) {
+    char pid[50];
+    char message[1000];
+
+    std::strncpy(pid, texte, 50);
+    std::strncpy(message, texte + 50, 1000);
+
+    int pid_client = std::stoi(pid);
+    snprintf(texte, 50, "%d", getpid());
+    if (strcmp(message, "SIGTSTP") == 0) {
+        std::strncpy(texte + 50, "\nTentative d’évasion échouée. Retour à ton clavier !\n", 1000);
+    } else if (strcmp(message, "SIGQUIT") == 0) {
+        std::strncpy(texte + 50, "\nFuir n’était pas une option. 5 minutes de prison numérique, interdit de toucher à la mémoire partagée. Profite de ta pause forcée pour réfléchir à tes choix !\n", 1000);
+    } else if (strcmp(message, "SIGTERM") == 0) {
+        std::strncpy(texte + 50, "\nVous avez tenté de quitter la confrérie sans autorisation. Vous subirez le pire des châtiments : votre droit à la parole.\n", 1000);
+    }
+    kill(pid_client, SIGCONT);
+}
+
 int main() {
     // Tentative de création de la mémoire partagée
     shmid = shmget((key_t)50, 1050, IPC_CREAT | IPC_EXCL | S_IWUSR | S_IRUSR);
@@ -112,6 +131,7 @@ int main() {
 
     printf("PID: %d\n", getpid());
     signal(SIGUSR1, sigusr1_handler);
+    signal(SIGUSR2, sigusr2_handler);
     signal(SIGINT, destruction_memoire_partage_handler);
     signal(SIGQUIT, destruction_memoire_partage_handler); // fait la même chose que SIGINT
     signal(SIGTSTP, destruction_memoire_partage_handler); // fait la même chose que SIGINT
