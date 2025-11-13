@@ -52,13 +52,14 @@ void sigusr1_handler(int sig) {
 
     int ret = shmdt(texte);
     if (ret == -1) { perror("SHMDT"); exit(3); }
-    // Réactiver l'entrée du terminal en mode non-canonique
+
+    // Réinitialisation du terminal en mode canonique
     tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
 
-    // Vider le tampon de saisie pour éviter l'envoi des caractères tapés pendant la pause
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    // Vider le buffer d'entrée (forcé par tcflush)
+    tcflush(STDIN_FILENO, TCIFLUSH);
 
-    printf("Je sors de la mémoire partage\n");
+    //printf("Je sors de la mémoire partage\n");
     exit(0);
 }
 
@@ -67,11 +68,16 @@ void sigusr2_handler(int sig) {
 
     std::strncpy(message, texte + 50, 1000);
     printf("%s", message);
-    // Réactiver l'entrée du terminal en mode non-canonique
+
+    // Réinitialisation du terminal en mode canonique
     tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
 
-    // Vider le tampon de saisie pour éviter l'envoi des caractères tapés pendant la pause
-    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    // Vider le buffer d'entrée (forcé par tcflush)
+    tcflush(STDIN_FILENO, TCIFLUSH);
+}
+
+void sigtstp_handler(int sig) {
+    printf("\nTentative d’évasion échouée. Retour à ton clavier !\n");
 }
 
 void sigint_handler(int sig) {
@@ -79,16 +85,37 @@ void sigint_handler(int sig) {
 }
 
 void sigquit_handler(int sig) {
-    printf("SIGQUIT");
-}
+    // Afficher le message d'avertissement
+    printf("\nFuir n’était pas une option. 5 minutes de prison numérique, interdit de toucher à la mémoire partagée. Profite de ta pause forcée pour réfléchir à tes choix !\n");
 
-void sigtstp_handler(int sig) {
-    printf("SIGTSTP");
+    // Désactiver l'entrée
+    disable_input();
+
+    int remaining_time = 300; // Temps restant en secondes (5 minutes)
+
+    // Afficher le temps restant toutes les secondes pendant 5 minutes
+    while (remaining_time > 0) {
+        int minutes = remaining_time / 60;  // Calculer le nombre de minutes
+        int seconds = remaining_time % 60;  // Calculer le nombre de secondes restantes
+
+        // Afficher le temps restant sous forme "minutes:secondes"
+        printf("\rTemps restant : %02d:%02d", minutes, seconds); // \r efface la ligne précédente
+        fflush(stdout); // Forcer l'affichage
+
+        sleep(1);  // Attendre 1 seconde
+        remaining_time--; // Réduire le temps restant
+    }
+
+    // Réinitialisation du terminal en mode canonique
+    tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
+
+    // Vider le buffer d'entrée (forcé par tcflush)
+    tcflush(STDIN_FILENO, TCIFLUSH);
+    printf("\nVous pouvez maintenant reprendre la parole.\n");
 }
 
 void sigterm_handler(int sig) {
-    printf("\n");
-    printf("Vous avez tenté de quitter la confrérie sans autorisation. Vous subirez le pire des châtiments : votre droit à la parole.\n");
+    printf("\nVous avez tenté de quitter la confrérie sans autorisation. Vous subirez le pire des châtiments : votre droit à la parole.\n");
     disable_input();
     std::cin.clear();  // Réinitialiser le flux d'entrée
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
