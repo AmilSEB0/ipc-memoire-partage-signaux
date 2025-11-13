@@ -17,6 +17,7 @@ char * texte;
 int pid;
 pid_t pid_serveur;
 char rejoindreServeur; /* réponse (o/n) à une question */
+bool signalServeur;
 
 // Fonction pour supprimer les espaces au début et à la fin d'une chaîne
 std::string trim(const std::string &str) {
@@ -46,6 +47,7 @@ void disable_input(void) {
 }
 
 void ecrireMessage(void){
+    signalServeur = false;
     snprintf(texte, 50, "%d", pid);
     std::cout << "--> Tapez votre message : ";
     fflush(stdout); // Forcer l'affichage
@@ -97,7 +99,16 @@ void sigusr2_handler(int sig) {
 }
 
 void sigtstp_handler(int sig) {
-    printf("\nTentative d’évasion échouée. Retour à ton clavier !\n");
+    snprintf(texte, 50, "%d", pid);
+    std::strncpy(texte + 50, "SIGTSTP", 1000);
+    kill(pid_serveur, SIGUSR2);
+    while(signalServeur == false) {
+        pause();
+        char message[1000];
+        std::strncpy(message, texte + 50, 1000);
+        printf("%s", message);
+        ecrireMessage();
+    }
 }
 
 void sigint_handler(int sig) {
@@ -105,8 +116,15 @@ void sigint_handler(int sig) {
 }
 
 void sigquit_handler(int sig) {
-    // Afficher le message d'avertissement
-    printf("\nFuir n’était pas une option. 5 minutes de prison numérique, interdit de toucher à la mémoire partagée. Profite de ta pause forcée pour réfléchir à tes choix !\n");
+    snprintf(texte, 50, "%d", pid);
+    std::strncpy(texte + 50, "SIGQUIT", 1000);
+    kill(pid_serveur, SIGUSR2);
+    while(signalServeur == false) {
+        pause();
+        char message[1000];
+        std::strncpy(message, texte + 50, 1000);
+        printf("%s", message);
+    }
 
     // Désactiver l'entrée
     disable_input();
@@ -136,7 +154,16 @@ void sigquit_handler(int sig) {
 }
 
 void sigterm_handler(int sig) {
-    printf("\nVous avez tenté de quitter la confrérie sans autorisation. Vous subirez le pire des châtiments : votre droit à la parole.\n");
+    snprintf(texte, 50, "%d", pid);
+    std::strncpy(texte + 50, "SIGTERM", 1000);
+    kill(pid_serveur, SIGUSR2);
+    while(signalServeur == false) {
+        pause();
+        char message[1000];
+        std::strncpy(message, texte + 50, 1000);
+        printf("%s", message);
+    }
+
     disable_input();
     std::cin.clear();  // Réinitialiser le flux d'entrée
     std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
@@ -144,6 +171,19 @@ void sigterm_handler(int sig) {
     while (1) {
         // Bloquer l'exécution ici (le terminal est désactivé)
         pause();
+    }
+}
+
+void sigcont_handler(int sig) {
+    char pid[50];
+
+    std::strncpy(pid, texte, 50);
+
+    // Conversion de pid en pid_t
+    pid_t pid_message = static_cast<pid_t>(std::stoi(pid));  // Conversion de la chaîne en entier
+
+    if (pid_message == pid_serveur) {
+        signalServeur = true;
     }
 }
 
@@ -171,6 +211,7 @@ int main() {
     signal(SIGQUIT, sigquit_handler);
     signal(SIGTSTP, sigtstp_handler);
     signal(SIGTERM, sigterm_handler);
+    signal(SIGCONT, sigcont_handler);
 
     printf("--> Voulez-vous rejoindre la mémoire partagé (o/n) ? : ");
     fflush(stdout);
