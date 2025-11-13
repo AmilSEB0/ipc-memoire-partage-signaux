@@ -15,6 +15,7 @@ struct termios orig_termios;
 int shmid;
 char * texte;
 int pid;
+pid_t pid_serveur;
 char rejoindreServeur; /* réponse (o/n) à une question */
 
 // Fonction pour supprimer les espaces au début et à la fin d'une chaîne
@@ -42,6 +43,25 @@ void disable_input(void) {
     new_termios = orig_termios;
     new_termios.c_lflag &= ~(ICANON | ECHO);  // Désactive l'entrée canonique et l'écho
     tcsetattr(STDIN_FILENO, TCSANOW, &new_termios);
+}
+
+void ecrireMessage(void){
+    snprintf(texte, 50, "%d", pid);
+    std::cout << "--> Tapez votre message : ";
+    fflush(stdout); // Forcer l'affichage
+    std::string message;
+    std::getline(std::cin, message);
+
+    message = trim(message);
+
+    std::strncpy(texte + 50, message.c_str(), 1000);
+
+    kill(pid_serveur, SIGUSR1);
+
+    if (message == "quitter") {
+        disable_input();
+        pause();
+    }
 }
 
 void sigusr1_handler(int sig) {
@@ -111,7 +131,8 @@ void sigquit_handler(int sig) {
 
     // Vider le buffer d'entrée (forcé par tcflush)
     tcflush(STDIN_FILENO, TCIFLUSH);
-    printf("\nVous pouvez maintenant reprendre la parole.\n");
+    printf("\n");
+    ecrireMessage();
 }
 
 void sigterm_handler(int sig) {
@@ -138,7 +159,7 @@ int main() {
         exit(1);
     }
 
-    pid_t pid_serveur = shmid_ds.shm_cpid;
+    pid_serveur = shmid_ds.shm_cpid;
 
     printf("pid_serveur = %d\n", pid_serveur);
 
@@ -183,19 +204,6 @@ int main() {
     // Ignore the newline character left by std::cin >> nom;
     //std::cin.ignore();
     while(1) {
-        snprintf(texte, 50, "%d", pid);
-        std::cout << "--> Tapez votre message : ";
-        std::string message;
-        std::getline(std::cin, message);
-
-        message = trim(message);
-
-        std::strncpy(texte + 50, message.c_str(), 1000);
-        kill(pid_serveur, SIGUSR1);
-
-        if (message == "quitter") {
-            disable_input();
-            pause();
-        }
+        ecrireMessage();
     }
 }
