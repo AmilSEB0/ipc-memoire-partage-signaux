@@ -61,7 +61,7 @@ void sigusr1_handler(int sig) {
     //std::cout << "Message : " << message << std::endl;
 }
 
-void sigint_handler(int sig) {
+void destruction_memoire_partage_handler(int sig) {
     for (auto& client : mapClient) {
         std::cout << "PID du client : " << client.first << std::endl;
         kill(client.first, SIGUSR1);
@@ -112,7 +112,11 @@ int main() {
 
     printf("PID: %d\n", getpid());
     signal(SIGUSR1, sigusr1_handler);
-    signal(SIGINT, sigint_handler);
+    signal(SIGINT, destruction_memoire_partage_handler);
+    signal(SIGQUIT, destruction_memoire_partage_handler); // fait la même chose que SIGINT
+    signal(SIGTSTP, destruction_memoire_partage_handler); // fait la même chose que SIGINT
+    signal(SIGTERM, destruction_memoire_partage_handler); // fait la même chose que SIGINT
+
     while (1) {
         pause();
     }

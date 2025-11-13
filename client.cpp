@@ -87,7 +87,16 @@ void sigtstp_handler(int sig) {
 }
 
 void sigterm_handler(int sig) {
-    printf("SIGTERM");
+    printf("\n");
+    printf("Vous avez tenté de quitter la confrérie sans autorisation. Vous subirez le pire des châtiments : votre droit à la parole.\n");
+    disable_input();
+    std::cin.clear();  // Réinitialiser le flux d'entrée
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    // Le programme attend ici jusqu'à ce qu'il soit terminé ou qu'une action supplémentaire soit prise
+    while (1) {
+        // Bloquer l'exécution ici (le terminal est désactivé)
+        pause();
+    }
 }
 
 int main() {
