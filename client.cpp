@@ -47,6 +47,7 @@ void disable_input(void) {
 }
 
 void ecrireMessage(void){
+    signalServeur = false;
     snprintf(texte, 50, "%d", pid);
     std::cout << "--> Tapez votre message : ";
     fflush(stdout); // Forcer l'affichage
@@ -173,6 +174,19 @@ void sigterm_handler(int sig) {
     }
 }
 
+void sigcont_handler(int sig) {
+    char pid[50];
+
+    std::strncpy(pid, texte, 50);
+
+    // Conversion de pid en pid_t
+    pid_t pid_message = static_cast<pid_t>(std::stoi(pid));  // Conversion de la chaîne en entier
+
+    if (pid_message == pid_serveur) {
+        signalServeur = true;
+    }
+}
+
 int main() {
     pid = getpid();
     shmid = shmget((key_t)50, 0, 0);
@@ -197,6 +211,7 @@ int main() {
     signal(SIGQUIT, sigquit_handler);
     signal(SIGTSTP, sigtstp_handler);
     signal(SIGTERM, sigterm_handler);
+    signal(SIGCONT, sigcont_handler);
 
     printf("--> Voulez-vous rejoindre la mémoire partagé (o/n) ? : ");
     fflush(stdout);
