@@ -20,6 +20,85 @@ int shmid ;
 std::map<int, Client> mapClient;
 char autorisation; /* réponse (o/n) à une question */
 
+void afficherMenu() {
+    std::cout << "\n--- Menu ---\n";
+    std::cout << "1. Voir les derniers messages de tous les clients\n";
+    std::cout << "2. Voir le dernier message d'un client spécifique\n";
+    std::cout << "3. Faire quitter un client de la mémoire partagée\n";
+    std::cout << "4. Détruire la mémoire partagé\n";
+    std::cout << "Choisissez une option (1-4): ";
+}
+
+void afficherTousLesMessages() {
+    if (mapClient.empty()) {
+        std::cout << "Aucun client connecté.\n";
+        return;
+    }
+
+    std::cout << "\nDerniers messages de tous les clients:\n";
+    for (const auto& client : mapClient) {
+        std::cout << client.second.nomPrenom << " a dit: " << client.second.dernierMessage << std::endl;
+    }
+}
+
+void afficherMessageClient() {
+    if (mapClient.empty()) {
+        std::cout << "Aucun client connecté.\n";
+        return;
+    }
+
+    for (const auto& client : mapClient) {
+        std::cout << client.second.nomPrenom << std::endl;
+    }
+
+    std::string nom;
+    std::cout << "Entrez le nom complet du client: ";
+    std::getline(std::cin, nom);
+
+    bool clientTrouve = false;
+    for (const auto& client : mapClient) {
+        if (client.second.nomPrenom == nom) {
+            std::cout << "le dernier message de " << nom << " est : " << client.second.dernierMessage << std::endl;
+            clientTrouve = true;
+            break;
+        }
+    }
+
+    if (!clientTrouve) {
+        std::cout << "Client non trouvé.\n";
+    }
+}
+
+void faireQuitterClient() {
+    if (mapClient.empty()) {
+        std::cout << "Aucun client connecté.\n";
+        return;
+    }
+
+    for (const auto& client : mapClient) {
+        std::cout << client.second.nomPrenom << "\n" << std::endl;
+    }
+
+    std::string nom;
+    std::cout << "Entrez le nom complet du client à faire quitter: ";
+    std::getline(std::cin, nom);
+
+    bool clientTrouve = false;
+    for (auto& client : mapClient) {
+        if (client.second.nomPrenom == nom) {
+            std::cout << "Envoi du signal SIGUSR1 à " << nom << " pour qu'il quitte la mémoire partagée.\n";
+            kill(client.first, SIGUSR1);
+            mapClient.erase(client.first);
+            clientTrouve = true;
+            break;
+        }
+    }
+
+    if (!clientTrouve) {
+        std::cout << "Client non trouvé.\n";
+    }
+}
+
 void sigusr1_handler(int sig) {
     printf("SIGUSR1 handler\n");
     char pid[50];
@@ -56,7 +135,7 @@ void sigusr1_handler(int sig) {
         mapClient[pid_client] = Client{NomPrenom, ""};
         std::cout << "Bienvenue à: " << NomPrenom << std::endl;
     }
-
+    afficherMenu();
     //std::cout << "PID du client : " << pid << std::endl;
     //std::cout << "Message : " << message << std::endl;
 }
@@ -138,6 +217,34 @@ int main() {
     signal(SIGTERM, destruction_memoire_partage_handler); // fait la même chose que SIGINT
 
     while (1) {
-        pause();
+        afficherMenu();
+
+        int choix;
+        std::cin >> choix;
+        std::cin.ignore();  // Pour ignorer la nouvelle ligne laissée par std::cin
+
+        switch (choix) {
+            case 1:
+                printf("\n");
+                afficherTousLesMessages();
+                break;
+            case 2:
+                printf("\n");
+                afficherMessageClient();
+                break;
+            case 3:
+                printf("\n");
+                faireQuitterClient();
+                break;
+            case 4:
+                printf("\n");
+                std::cout << "Arrêt du serveur...\n";
+                destruction_memoire_partage_handler(0);
+                break;
+            default:
+                printf("\n");
+                std::cout << "Option invalide. Essayez encore.\n";
+                break;
+        }
     }
 }
