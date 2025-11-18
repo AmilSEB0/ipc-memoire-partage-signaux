@@ -18,6 +18,7 @@ int pid;
 pid_t pid_serveur;
 char rejoindreServeur; /* réponse (o/n) à une question */
 bool signalServeur;
+std::string nomPrenom;
 bool clavierActiver = true;
 
 // Fonction pour supprimer les espaces au début et à la fin d'une chaîne
@@ -121,7 +122,26 @@ void sigtstp_handler(int sig) {
 }
 
 void sigint_handler(int sig) {
-    printf("SIGINT");
+    printf("\nPluie de moquerie\n");
+    snprintf(texte, 50, "%d", pid);
+    std::strncpy(texte + 50, "SIGINT", 1000);
+    kill(pid_serveur, SIGUSR2);
+    disable_input();
+    while(signalServeur == false) {
+        pause();
+        char message[1000];
+        std::strncpy(message, texte + 50, 1000);
+        printf("%s", message);
+    }
+    if(clavierActiver == false) {
+        // Réinitialisation du terminal en mode canonique
+        tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
+
+        // Vider le buffer d'entrée (forcé par tcflush)
+        tcflush(STDIN_FILENO, TCIFLUSH);
+    }
+
+    ecrireMessage();
 }
 
 void sigquit_handler(int sig) {
@@ -187,19 +207,47 @@ void sigterm_handler(int sig) {
 
 void sigcont_handler(int sig) {
     char pid[50];
+    char message[1000];
 
     std::strncpy(pid, texte, 50);
+    std::strncpy(message, texte + 50, 1000);
 
     // Conversion de pid en pid_t
     pid_t pid_message = static_cast<pid_t>(std::stoi(pid));  // Conversion de la chaîne en entier
 
     if (pid_message == pid_serveur) {
-        signalServeur = true;
+        std::string message_str(message); // convertir le tableau char en std::string
+        if(message_str.substr(0, 10) == "pid_client"){
+            int pid_client_a_punir;
+            char message_serveur[1000];
+
+            sscanf(message, "pid_client:%dmessage:%[^\n]", &pid_client_a_punir, message_serveur);
+
+            printf("\n");
+            printf("%s", message_serveur);
+            printf("\n");
+            std::cout << "--> Tapez votre message méchant : ";
+            fflush(stdout); // Forcer l'affichage
+            std::string message_punition;
+            std::getline(std::cin, message_punition);
+
+            message_punition = trim(message_punition);
+            snprintf(texte, 50, "%d", getpid());
+            std::string msg = "De la part de " + nomPrenom + " : " + message_punition + "\n";
+            std::strncpy(texte + 50, msg.c_str(), 1000);
+            kill(pid_client_a_punir, SIGCONT);
+            sleep(1);
+            kill(pid_serveur, SIGCONT);
+            ecrireMessage();
+        } else {
+            signalServeur = true;
+        }
     }
 }
 
 int main() {
     pid = getpid();
+	printf("pid_client = %d\n", pid);
     shmid = shmget((key_t)50, 0, 0);
     if (shmid == -1) { perror ( "SHMGET" ); exit(1); }
 
@@ -247,7 +295,7 @@ int main() {
     prenom = trim(prenom);
 
     // Combiner prénom et nom
-    std::string nomPrenom = prenom + " " + nom;
+    nomPrenom = prenom + " " + nom;
 
     std::strncpy(texte + 50, nomPrenom.c_str(), 1000);
 

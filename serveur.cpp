@@ -201,8 +201,32 @@ void sigusr2_handler(int sig) {
         std::strncpy(texte + 50, "\nFuir n’était pas une option. 5 minutes de prison numérique, interdit de toucher à la mémoire partagée. Profite de ta pause forcée pour réfléchir à tes choix !\n", 1000);
     } else if (strcmp(message, "SIGTERM") == 0) {
         std::strncpy(texte + 50, "\nVous avez tenté de quitter la confrérie sans autorisation. Vous subirez le pire des châtiments : votre droit à la parole.\n", 1000);
+    } else if (strcmp(message, "SIGINT") == 0) {
+        auto it = mapClient.find(pid_client);
+        std::string message;
+        if (it != mapClient.end()) {
+             message = "pid_client:" + std::to_string(pid_client) + "message: Huez " + it->second.nomPrenom;
+        } else {
+            printf("cette personne n'existe pas");
+        }
+        for (auto it = mapClient.begin(); it != mapClient.end(); ++it) {
+            if (it->first != pid_client){
+                printf("\nEn attente que %s rédige son message\n", it->second.nomPrenom.c_str());
+                snprintf(texte, 50, "%d", getpid());
+                std::strncpy(texte + 50, message.c_str(), 1000);
+                kill(it->first, SIGCONT);
+                pause();
+            }
+        }
+        snprintf(texte, 50, "%d", getpid());
+        std::strncpy(texte + 50, "De la part du chef : J'espère que cela te servira de leçon\n", 1000);
+        afficherMenu();
     }
     kill(pid_client, SIGCONT);
+}
+
+void sigcont_handler(int sig){
+    printf("SIGCONT\n");
 }
 
 int main() {
@@ -228,6 +252,7 @@ int main() {
     signal(SIGQUIT, destruction_memoire_partage_handler); // fait la même chose que SIGINT
     signal(SIGTSTP, destruction_memoire_partage_handler); // fait la même chose que SIGINT
     signal(SIGTERM, destruction_memoire_partage_handler); // fait la même chose que SIGINT
+    signal(SIGCONT, sigcont_handler);
 
     while (1) {
         afficherMenu();
