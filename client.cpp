@@ -18,6 +18,7 @@ int pid;
 pid_t pid_serveur;
 char rejoindreServeur; /* réponse (o/n) à une question */
 bool signalServeur;
+bool clavierActiver = true;
 
 // Fonction pour supprimer les espaces au début et à la fin d'une chaîne
 std::string trim(const std::string &str) {
@@ -39,6 +40,7 @@ std::string trim(const std::string &str) {
 }
 
 void disable_input(void) {
+    clavierActiver = false;
     struct termios new_termios;
     tcgetattr(STDIN_FILENO, &orig_termios);  // Sauvegarder l'état actuel du terminal
     new_termios = orig_termios;
@@ -61,6 +63,8 @@ void ecrireMessage(void){
     kill(pid_serveur, SIGUSR1);
 
     if (message == "quitter") {
+        // On est obligé de remettre le pid car le serveur reçoit le pid de la personne qui a écrit
+        snprintf(texte, 50, "%d", pid);
         disable_input();
         pause();
     }
@@ -71,15 +75,18 @@ void sigusr1_handler(int sig) {
 
     std::strncpy(message, texte + 50, 1000);
     printf("%s", message);
+    fflush(stdout);
 
     int ret = shmdt(texte);
     if (ret == -1) { perror("SHMDT"); exit(3); }
 
-    // Réinitialisation du terminal en mode canonique
-    tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
+    if(clavierActiver == false) {
+        // Réinitialisation du terminal en mode canonique
+        tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
 
-    // Vider le buffer d'entrée (forcé par tcflush)
-    tcflush(STDIN_FILENO, TCIFLUSH);
+        // Vider le buffer d'entrée (forcé par tcflush)
+        tcflush(STDIN_FILENO, TCIFLUSH);
+    }
 
     //printf("Je sors de la mémoire partage\n");
     exit(0);
@@ -91,11 +98,13 @@ void sigusr2_handler(int sig) {
     std::strncpy(message, texte + 50, 1000);
     printf("%s", message);
 
-    // Réinitialisation du terminal en mode canonique
-    tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
+    if(clavierActiver == false) {
+        // Réinitialisation du terminal en mode canonique
+        tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
 
-    // Vider le buffer d'entrée (forcé par tcflush)
-    tcflush(STDIN_FILENO, TCIFLUSH);
+        // Vider le buffer d'entrée (forcé par tcflush)
+        tcflush(STDIN_FILENO, TCIFLUSH);
+    }
 }
 
 void sigtstp_handler(int sig) {
@@ -144,11 +153,13 @@ void sigquit_handler(int sig) {
         remaining_time--; // Réduire le temps restant
     }
 
-    // Réinitialisation du terminal en mode canonique
-    tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
+    if(clavierActiver == false) {
+        // Réinitialisation du terminal en mode canonique
+        tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
 
-    // Vider le buffer d'entrée (forcé par tcflush)
-    tcflush(STDIN_FILENO, TCIFLUSH);
+        // Vider le buffer d'entrée (forcé par tcflush)
+        tcflush(STDIN_FILENO, TCIFLUSH);
+    }
     printf("\n");
     ecrireMessage();
 }

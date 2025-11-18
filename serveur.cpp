@@ -27,6 +27,7 @@ void afficherMenu() {
     std::cout << "3. Faire quitter un client de la mémoire partagée\n";
     std::cout << "4. Détruire la mémoire partagé\n";
     std::cout << "Choisissez une option (1-4): ";
+    fflush(stdout);
 }
 
 void afficherTousLesMessages() {
@@ -76,7 +77,7 @@ void faireQuitterClient() {
     }
 
     for (const auto& client : mapClient) {
-        std::cout << client.second.nomPrenom << "\n" << std::endl;
+        std::cout << client.second.nomPrenom << std::endl;
     }
 
     std::string nom;
@@ -225,19 +226,15 @@ int main() {
 
         switch (choix) {
             case 1:
-                printf("\n");
                 afficherTousLesMessages();
                 break;
             case 2:
-                printf("\n");
                 afficherMessageClient();
                 break;
             case 3:
-                printf("\n");
                 faireQuitterClient();
                 break;
             case 4:
-                printf("\n");
                 std::cout << "Arrêt du serveur...\n";
                 destruction_memoire_partage_handler(0);
                 break;
