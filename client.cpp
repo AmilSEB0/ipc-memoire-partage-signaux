@@ -50,24 +50,22 @@ void disable_input(void) {
 }
 
 void ecrireMessage(void){
-    signalServeur = false;
-    snprintf(texte, 50, "%d", pid);
-    std::cout << "--> Tapez votre message : ";
-    fflush(stdout); // Forcer l'affichage
-    std::string message;
-    std::getline(std::cin, message);
-
-    message = trim(message);
-
-    std::strncpy(texte + 50, message.c_str(), 1000);
-
-    kill(pid_serveur, SIGUSR1);
-
-    if (message == "quitter") {
-        // On est obligé de remettre le pid car le serveur reçoit le pid de la personne qui a écrit
+    while(1) {
+        signalServeur = false;
         snprintf(texte, 50, "%d", pid);
-        disable_input();
-        pause();
+        std::cout << "--> Tapez votre message : ";
+        fflush(stdout); // Forcer l'affichage
+        std::string message;
+        std::getline(std::cin, message);
+        message = trim(message);
+        std::strncpy(texte + 50, message.c_str(), 1000);
+        kill(pid_serveur, SIGUSR1);
+        if (message == "quitter") {
+            // On est obligé de remettre le pid car le serveur reçoit le pid de la personne qui a écrit
+            snprintf(texte, 50, "%d", pid);
+            disable_input();
+            pause();
+        }
     }
 }
 
@@ -303,7 +301,5 @@ int main() {
 
     // Ignore the newline character left by std::cin >> nom;
     //std::cin.ignore();
-    while(1) {
-        ecrireMessage();
-    }
+    ecrireMessage();
 }
