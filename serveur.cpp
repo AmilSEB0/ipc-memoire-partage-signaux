@@ -9,6 +9,7 @@
 #include <iostream>
 #include <cstring>
 #include <map>
+#include <limits>
 
 struct Client {
     std::string nomPrenom;
@@ -54,12 +55,17 @@ void afficherMessageClient() {
 
     std::string nom;
     std::cout << "Entrez le nom complet du client: ";
+
+    // Ajouter cette ligne pour vider le tampon avant de lire une nouvelle ligne
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+    // Lire le nom complet du client
     std::getline(std::cin, nom);
 
     bool clientTrouve = false;
     for (const auto& client : mapClient) {
         if (client.second.nomPrenom == nom) {
-            std::cout << "le dernier message de " << nom << " est : " << client.second.dernierMessage << std::endl;
+            std::cout << "Le dernier message de " << nom << " est : " << client.second.dernierMessage << std::endl;
             clientTrouve = true;
             break;
         }
@@ -82,6 +88,11 @@ void faireQuitterClient() {
 
     std::string nom;
     std::cout << "Entrez le nom complet du client à faire quitter: ";
+
+    // Ajouter cette ligne pour vider le tampon avant de lire une nouvelle ligne
+    std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+
+    // Lire le nom complet du client
     std::getline(std::cin, nom);
 
     bool clientTrouve = false;
@@ -117,6 +128,7 @@ void sigusr1_handler(int sig) {
             printf("--> Autorisez-vous %s à quitter la mémoire partagée (o/n) ? : ", it->second.nomPrenom.c_str());
             fflush(stdout);
             scanf(" %c", &autorisation);
+            std::cin.ignore();  // Vide le tampon
             snprintf(texte, 50, "%d", getpid());
             if (autorisation == 'o') {
                 std::strncpy(texte + 50, "Votre demande a été acceptée\n", 1000);
@@ -222,7 +234,13 @@ int main() {
 
         int choix;
         std::cin >> choix;
-        std::cin.ignore();  // Pour ignorer la nouvelle ligne laissée par std::cin
+
+        if (std::cin.fail()) {
+            std::cin.clear();  // Effacer les erreurs de saisie
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');  // Ignorer le reste de la ligne
+            std::cout << "Entrée invalide. Essayez encore." << std::endl;
+            continue;  // Reprendre la boucle
+        }
 
         switch (choix) {
             case 1:
