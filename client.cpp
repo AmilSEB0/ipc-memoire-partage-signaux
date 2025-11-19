@@ -20,6 +20,7 @@ char rejoindreServeur; /* réponse (o/n) à une question */
 bool signalServeur;
 std::string nomPrenom;
 bool clavierActiver = true;
+bool traitementSignal = false;
 
 // Fonction pour supprimer les espaces au début et à la fin d'une chaîne
 std::string trim(const std::string &str) {
@@ -50,22 +51,22 @@ void disable_input(void) {
 }
 
 void ecrireMessage(void){
-    while(1) {
-        signalServeur = false;
+    traitementSignal = false;
+    signalServeur = false;
+    snprintf(texte, 50, "%d", pid);
+    std::cout << "--> Tapez votre message : ";
+    fflush(stdout); // Forcer l'affichage
+    std::string message;
+    std::getline(std::cin, message);
+    message = trim(message);
+    std::strncpy(texte + 50, message.c_str(), 1000);
+    kill(pid_serveur, SIGUSR1);
+    if (message == "quitter") {
+        printf("\nEn attente de la réponse du serveur\n");
+        // On est obligé de remettre le pid car le serveur reçoit le pid de la personne qui a écrit
         snprintf(texte, 50, "%d", pid);
-        std::cout << "--> Tapez votre message : ";
-        fflush(stdout); // Forcer l'affichage
-        std::string message;
-        std::getline(std::cin, message);
-        message = trim(message);
-        std::strncpy(texte + 50, message.c_str(), 1000);
-        kill(pid_serveur, SIGUSR1);
-        if (message == "quitter") {
-            // On est obligé de remettre le pid car le serveur reçoit le pid de la personne qui a écrit
-            snprintf(texte, 50, "%d", pid);
-            disable_input();
-            pause();
-        }
+        disable_input();
+        pause();
     }
 }
 
@@ -107,6 +108,10 @@ void sigusr2_handler(int sig) {
 }
 
 void sigtstp_handler(int sig) {
+    if (traitementSignal) {
+        return;
+    }
+    traitementSignal = true;
     snprintf(texte, 50, "%d", pid);
     std::strncpy(texte + 50, "SIGTSTP", 1000);
     kill(pid_serveur, SIGUSR2);
@@ -115,11 +120,14 @@ void sigtstp_handler(int sig) {
         char message[1000];
         std::strncpy(message, texte + 50, 1000);
         printf("%s", message);
-        ecrireMessage();
     }
 }
 
 void sigint_handler(int sig) {
+    if (traitementSignal) {
+        return;
+    }
+    traitementSignal = true;
     printf("\nPluie de moquerie\n");
     snprintf(texte, 50, "%d", pid);
     std::strncpy(texte + 50, "SIGINT", 1000);
@@ -138,11 +146,13 @@ void sigint_handler(int sig) {
         // Vider le buffer d'entrée (forcé par tcflush)
         tcflush(STDIN_FILENO, TCIFLUSH);
     }
-
-    ecrireMessage();
 }
 
 void sigquit_handler(int sig) {
+    if (traitementSignal) {
+        return;
+    }
+    traitementSignal = true;
     snprintf(texte, 50, "%d", pid);
     std::strncpy(texte + 50, "SIGQUIT", 1000);
     kill(pid_serveur, SIGUSR2);
@@ -179,10 +189,13 @@ void sigquit_handler(int sig) {
         tcflush(STDIN_FILENO, TCIFLUSH);
     }
     printf("\n");
-    ecrireMessage();
 }
 
 void sigterm_handler(int sig) {
+    if (traitementSignal) {
+        return;
+    }
+    traitementSignal = true;
     snprintf(texte, 50, "%d", pid);
     std::strncpy(texte + 50, "SIGTERM", 1000);
     kill(pid_serveur, SIGUSR2);
@@ -236,7 +249,6 @@ void sigcont_handler(int sig) {
             kill(pid_client_a_punir, SIGCONT);
             sleep(1);
             kill(pid_serveur, SIGCONT);
-            ecrireMessage();
         } else {
             signalServeur = true;
         }
@@ -301,5 +313,7 @@ int main() {
 
     // Ignore the newline character left by std::cin >> nom;
     //std::cin.ignore();
-    ecrireMessage();
+    while(1) {
+        ecrireMessage();
+    }
 }
