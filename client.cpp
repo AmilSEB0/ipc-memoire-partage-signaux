@@ -152,9 +152,6 @@ void sigint_handler(int sig) {
         std::strncpy(message, texte + 50, 1000);
         printf("%s", message);
     }
-    if(clavierActiver == false) {
-        // Réinitialisation du terminal en mode canonique
-        tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
 
     // Restaurer l'entrée après le signal
     restore_input();
@@ -236,6 +233,10 @@ void sigcont_handler(int sig) {
     if (pid_message == pid_serveur) {
         std::string message_str(message); // convertir le tableau char en std::string
         if(message_str.substr(0, 10) == "pid_client"){
+            if(traitementSignal){
+                kill(pid_serveur, SIGCONT);
+                return;
+            }
             int pid_client_a_punir;
             char message_serveur[1000];
 
@@ -254,8 +255,9 @@ void sigcont_handler(int sig) {
             std::string msg = "De la part de " + nomPrenom + " : " + message_punition + "\n";
             std::strncpy(texte + 50, msg.c_str(), 1000);
             kill(pid_client_a_punir, SIGCONT);
-            sleep(1);
+            sleep(0.5);
             kill(pid_serveur, SIGCONT);
+            ecrireMessage();
         } else {
             signalServeur = true;
         }
