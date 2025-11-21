@@ -50,6 +50,16 @@ void disable_input(void) {
     tcsetattr(STDIN_FILENO, TCSANOW, &new_termios);
 }
 
+void restore_input(void) {
+    if (clavierActiver == false) {
+        // Réinitialisation du terminal en mode canonique
+        tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
+        // Vider le buffer d'entrée (forcé par tcflush)
+        tcflush(STDIN_FILENO, TCIFLUSH);
+        clavierActiver = true;
+    }
+}
+
 void ecrireMessage(void){
     traitementSignal = false;
     signalServeur = false;
@@ -121,6 +131,9 @@ void sigtstp_handler(int sig) {
         std::strncpy(message, texte + 50, 1000);
         printf("%s", message);
     }
+
+    // Restaurer l'entrée après le signal
+    restore_input();
 }
 
 void sigint_handler(int sig) {
@@ -143,9 +156,8 @@ void sigint_handler(int sig) {
         // Réinitialisation du terminal en mode canonique
         tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
 
-        // Vider le buffer d'entrée (forcé par tcflush)
-        tcflush(STDIN_FILENO, TCIFLUSH);
-    }
+    // Restaurer l'entrée après le signal
+    restore_input();
 }
 
 void sigquit_handler(int sig) {
@@ -181,13 +193,8 @@ void sigquit_handler(int sig) {
         remaining_time--; // Réduire le temps restant
     }
 
-    if(clavierActiver == false) {
-        // Réinitialisation du terminal en mode canonique
-        tcsetattr(STDIN_FILENO, TCSANOW, &orig_termios);
-
-        // Vider le buffer d'entrée (forcé par tcflush)
-        tcflush(STDIN_FILENO, TCIFLUSH);
-    }
+    // Restaurer l'entrée après le signal
+    restore_input();
     printf("\n");
 }
 
