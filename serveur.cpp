@@ -20,6 +20,19 @@ char * texte;
 int shmid ;
 std::map<int, Client> mapClient;
 char autorisation; /* réponse (o/n) à une question */
+sigset_t set;
+
+// Fonction pour bloquer SIGUSR1
+void bloquer_SIGUSR1() {
+    sigemptyset(&set);                // Crée un ensemble vide de signaux
+    sigaddset(&set, SIGUSR1);         // Ajoute SIGUSR1 à l'ensemble
+    sigprocmask(SIG_BLOCK, &set, NULL);  // Bloque SIGUSR1
+}
+
+// Fonction pour débloquer SIGUSR1
+void debloquer_SIGUSR1() {
+    sigprocmask(SIG_UNBLOCK, &set, NULL); // Débloque SIGUSR1
+}
 
 void afficherMenu() {
     std::cout << "\n--- Menu ---\n";
@@ -128,6 +141,8 @@ void sigusr1_handler(int sig) {
             printf("--> Autorisez-vous %s à quitter la mémoire partagée (o/n) ? : ", it->second.nomPrenom.c_str());
             fflush(stdout);
             scanf(" %c", &autorisation);
+            // Bloquer SIGUSR1 avant d'entrer dans la boucle
+            bloquer_SIGUSR1();
             std::cin.ignore();  // Vide le tampon
             snprintf(texte, 50, "%d", getpid());
             if (autorisation == 'o') {
@@ -139,6 +154,8 @@ void sigusr1_handler(int sig) {
                 std::strncpy(texte + 50, "Votre demande a été refusée.\n", 1000);
                 kill(pid_client, SIGUSR2);
             }
+            // Débloque SIGUSR1
+            debloquer_SIGUSR1();
         } else {
             it->second.dernierMessage = message;
             std::cout << it->second.nomPrenom << " a dit: " << it->second.dernierMessage << std::endl;
@@ -209,6 +226,7 @@ void sigusr2_handler(int sig) {
         } else {
             printf("cette personne n'existe pas");
         }
+        bloquer_SIGUSR1();
         for (auto it = mapClient.begin(); it != mapClient.end(); ++it) {
             if (it->first != pid_client){
                 printf("\nEn attente que %s rédige son message\n", it->second.nomPrenom.c_str());
@@ -220,6 +238,7 @@ void sigusr2_handler(int sig) {
         }
         snprintf(texte, 50, "%d", getpid());
         std::strncpy(texte + 50, "De la part du chef : J'espère que cela te servira de leçon\n", 1000);
+        debloquer_SIGUSR1();
         afficherMenu();
     }
     kill(pid_client, SIGCONT);
